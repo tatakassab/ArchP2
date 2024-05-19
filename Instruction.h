@@ -1,6 +1,8 @@
 #ifndef INST
 #define INST
 #include"Memory.h"
+#include<string>
+using namespace std;
 
 enum STATE
 {
@@ -16,6 +18,7 @@ enum STATE
 class Instruction
 {
 public:
+	string inst;
 	int type;
 	int execution_cycles_left;
 	int offset_cycles_left;
@@ -28,10 +31,11 @@ public:
 	int issueTime, execStartTime, execEndTime, writeTime;
 	Memory mem;
 	int PC;
-	Instruction(int Type, int execDuration, int s1, int s2, int rd, int Offset = 0, int offset_cycles = 0) {
+	Instruction(string name, int Type, int s1, int s2, int rd, int Offset = 0) {
+		inst = name;
 		type = Type;
-		execution_cycles_left = execDuration;
-		offset_cycles_left = offset_cycles;
+		execution_cycles_left = 1;
+		offset_cycles_left = 0;
 		state = STATE::INITIAL;
 		branchWait = false;
 		offset = Offset;
@@ -63,10 +67,10 @@ public:
 			else result = 0;
 			offset = offset + PC + 1;
 		}
-		else if (type == 3) {
+		else if (type == 3) { //CALL
 			result = PC+1;
 		}
-		else if (type == 4) {
+		else if (type == 4) { //RET
 			result = 1;
 		}
 		else if (type == 5) { //ADD

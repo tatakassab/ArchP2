@@ -2,16 +2,19 @@
 
 void Simulator::Simulate()
 {
-	WriteBack();
+	int x = WriteBack();
 	Execute();
-	Issue();
+	for(int i = 0; i < issues; i++)
+		Issue();
+	if (x != -1)
+		stations.at(x).busy = false;
 	time++;
 }
 
-void Simulator::WriteBack()
+int Simulator::WriteBack()
 {
 	for (int i = 0; i < stations.size(); i++) {
-		if (stations.at(i).currentInst->state == STATE::EXECUTED) {
+		if (stations.at(i).busy && stations.at(i).currentInst->state == STATE::EXECUTED) {
 			if (stations.at(i).currentInst->type != 1 && stations.at(i).currentInst->type != 2 && stations.at(i).currentInst->type != 4) {
 				for (int j = 0; j < registers.size(); j++) {
 					if (registers.at(j).Qi == &stations.at(i) && j != 0) {
@@ -35,6 +38,7 @@ void Simulator::WriteBack()
 			}
 			if (stations.at(i).currentInst->type == 2 || stations.at(i).currentInst->type == 3 || stations.at(i).currentInst->type == 4) {
 				if (stations.at(i).currentInst->result == 1 || stations.at(i).currentInst->type == 3) {
+					totalpredictionfail++;
 					if (stations.at(i).currentInst->type == 4) {
 						PC = registers.at(1).data;
 					}
@@ -42,16 +46,17 @@ void Simulator::WriteBack()
 						PC = stations.at(i).currentInst->offset;
 					}
 					for (int j = 0; j < stations.size(); j++) {
-						if (stations.at(j).currentInst->branchWait) {
+						if (stations.at(j).busy && stations.at(j).currentInst->branchWait) {
 							delete stations.at(j).currentInst;
 							stations.at(j).busy = false;
 							stations.at(j).currentInst = nullptr;
 						}
 					}
 				}
-				branchesInFlight--;
+				totalbranches++;
+				branchesInFlight = 0;
 				for (int j = 0; j < stations.size(); j++) {
-					if (stations.at(j).currentInst->branch == stations.at(i).currentInst) {
+					if (stations.at(j).busy && stations.at(j).currentInst->branch == stations.at(i).currentInst) {
 						stations.at(j).currentInst->branch = nullptr;
 						stations.at(j).currentInst->branchWait = false;
 					}
@@ -60,16 +65,17 @@ void Simulator::WriteBack()
 			loadStore.erase(remove(loadStore.begin(), loadStore.end(), stations.at(i).currentInst), loadStore.end());
 			stations.at(i).currentInst->writeTime = time;
 			finished.push_back(stations.at(i).currentInst);
-			stations.at(i).busy = false;
-			break;
+			return i;
 		}
 	}
+	return -1;
 }
 
 void Simulator::Execute()
 {
 	for (int i = 0; i < stations.size(); i++) {
-		stations.at(i).execute(loadStore,time);
+		if(stations.at(i).busy)
+			stations.at(i).execute(loadStore,time);
 	}
 }
 
@@ -77,8 +83,9 @@ void Simulator::Issue()
 {
 	if (PC != instructions.size()) {
 		for (int i = 0; i < stations.size(); i++) {
-			if (!stations.at(i).busy && stations.at(i).type == instructions.at(PC).type) {
+			if (!stations.at(i).busy && stations.at(i).satisfys(instructions.at(PC).type)) {
 				Instruction* inst = new Instruction(instructions.at(PC));
+				inst->PC = PC;
 				stations.at(i).Issue(inst, time);
 				if (branchesInFlight > 0) {
 					inst->branchWait = true;

@@ -10,8 +10,7 @@ class Memory
 public:
 	vector<int> mem;
 	Memory() {
-		mem.clear();
-		mem.reserve(128000);
+		mem = vector<int>(128000);
 	}
 	void insert(int address, int val) {
 		if(address < 128000)

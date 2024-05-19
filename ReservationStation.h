@@ -6,20 +6,30 @@
 class ReservationStation
 {
 public:
-	int type;
+	vector<int> type;
 	bool busy;
 	Instruction* currentInst;
 	ReservationStation* src1;
 	ReservationStation* src2;
-	bool ready;
-	ReservationStation(int Type) {
+	int speed;
+	int offspeed;
+
+	ReservationStation(vector<int> Type, int s, int os = 0) {
 		type = Type;
 		busy = false;
+		src1 = nullptr;
+		src2 = nullptr;
+		currentInst = nullptr;
+		speed = s;
+		offspeed = os;
 	}
 	void Issue(Instruction* inst, int time) {
 		busy = true;
 		currentInst = inst;
 		currentInst->issueTime = time;
+		currentInst->state = STATE::ISSUED;
+		currentInst->execution_cycles_left = speed;
+		currentInst->offset_cycles_left = offspeed;
 	}
 	void execute(vector<Instruction*> &LoadStore, int time) {
 		if (src1 == nullptr && src2 == nullptr && currentInst->state == STATE::ISSUED && currentInst->branchWait == false) {
@@ -72,6 +82,15 @@ public:
 			currentInst->state = STATE::EXECUTED;
 			currentInst->execEndTime = time;
 		}
+	}
+
+	bool satisfys(int t) {
+		for (int i = 0; i < type.size(); i++) {
+			if (t == type.at(i)) {
+				return true;
+			}
+		}
+		return false;
 	}
 };
 
