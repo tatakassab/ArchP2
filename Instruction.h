@@ -50,7 +50,7 @@ public:
 			offset = source1 + offset;
 		}
 		else if (type == 1) { //STORE
-			offset = source1 + offset;
+			offset = source2 + offset;
 		}
 	}
 	void Execute() {
@@ -72,6 +72,7 @@ public:
 		}
 		else if (type == 4) { //RET
 			result = 1;
+			offset = source1;
 		}
 		else if (type == 5) { //ADD
 			result = source1 + source2;

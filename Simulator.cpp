@@ -23,11 +23,11 @@ int Simulator::WriteBack()
 					}
 				}
 				for (int j = 0; j < stations.size(); j++) {
-					if (stations.at(j).src1 == &stations.at(i)) {
+					if (stations.at(j).busy && stations.at(j).src1 == &stations.at(i)) {
 						stations.at(j).src1 = nullptr;
 						stations.at(j).currentInst->source1 = stations.at(i).currentInst->result;
 					}
-					if (stations.at(j).src2 == &stations.at(i)) {
+					if (stations.at(j).busy && stations.at(j).src2 == &stations.at(i)) {
 						stations.at(j).src2 = nullptr;
 						stations.at(j).currentInst->source2 = stations.at(i).currentInst->result;
 					}
@@ -37,16 +37,23 @@ int Simulator::WriteBack()
 				mem.insert(stations.at(i).currentInst->offset, stations.at(i).currentInst->result);
 			}
 			if (stations.at(i).currentInst->type == 2 || stations.at(i).currentInst->type == 3 || stations.at(i).currentInst->type == 4) {
-				if (stations.at(i).currentInst->result == 1 || stations.at(i).currentInst->type == 3) {
+				if (stations.at(i).currentInst->result == 1 || stations.at(i).currentInst->type == 3 || stations.at(i).currentInst->type == 4) {
 					totalpredictionfail++;
-					if (stations.at(i).currentInst->type == 4) {
-						PC = registers.at(1).data;
-					}
-					else {
-						PC = stations.at(i).currentInst->offset;
-					}
+					branchesInFlight = 1;
+					PC = stations.at(i).currentInst->offset;
 					for (int j = 0; j < stations.size(); j++) {
 						if (stations.at(j).busy && stations.at(j).currentInst->branchWait) {
+							loadStore.erase(remove(loadStore.begin(), loadStore.end(), stations.at(j).currentInst), loadStore.end());
+							if (stations.at(j).src1 != nullptr) {
+								if (stations.at(j).src1->busy) {
+									registers.at(stations.at(j).currentInst->source1Index).Qi = stations.at(j).src1;
+								}
+							}
+							if (stations.at(j).src2 != nullptr) {
+								if (stations.at(j).src2->busy) {
+									registers.at(stations.at(j).currentInst->source1Index).Qi = stations.at(j).src2;
+								}
+							}
 							delete stations.at(j).currentInst;
 							stations.at(j).busy = false;
 							stations.at(j).currentInst = nullptr;
@@ -54,7 +61,7 @@ int Simulator::WriteBack()
 					}
 				}
 				totalbranches++;
-				branchesInFlight = 0;
+				branchesInFlight--;
 				for (int j = 0; j < stations.size(); j++) {
 					if (stations.at(j).busy && stations.at(j).currentInst->branch == stations.at(i).currentInst) {
 						stations.at(j).currentInst->branch = nullptr;
@@ -91,7 +98,7 @@ void Simulator::Issue()
 					inst->branchWait = true;
 					inst->branch = LastBranch;
 				}
-				if (inst->type == 2) {
+				if (inst->type == 2 || inst->type == 3 || inst->type == 4) {
 					branchesInFlight++;
 					LastBranch = inst;
 				}
@@ -111,10 +118,12 @@ void Simulator::Issue()
 						inst->source2 = registers.at(inst->source2Index).data;
 						stations.at(i).src2 = nullptr;
 					}
-					if (inst->type != 1 && inst->targetIndex != 0) {
-						registers.at(inst->targetIndex).Qi = &stations.at(i);
-					}
 				}
+
+				if (inst->type != 1 && inst->targetIndex != 0) {
+					registers.at(inst->targetIndex).Qi = &stations.at(i);
+				}
+
 				if (inst->type == 0 || inst->type == 1) {
 					loadStore.push_back(inst);
 				}

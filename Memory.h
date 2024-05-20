@@ -11,6 +11,8 @@ public:
 	vector<int> mem;
 	Memory() {
 		mem = vector<int>(128000);
+		mem[10] = 1;
+		mem[20] = 2;
 	}
 	void insert(int address, int val) {
 		if(address < 128000)

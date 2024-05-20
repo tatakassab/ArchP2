@@ -48,10 +48,13 @@ public:
 			currentInst->execution_cycles_left--;
 		}
 		else if (currentInst->state == STATE::EXECUTINGOFFSET) {
-			if(currentInst->offset_cycles_left != 0)
+			if(currentInst->offset_cycles_left > 0)
 				currentInst->offset_cycles_left--;
 			else {
-				currentInst->CalculateAddress();
+				if (currentInst->offset_cycles_left == 0) {
+					currentInst->CalculateAddress();
+					currentInst->offset_cycles_left--;
+				}
 				bool flag = false;
 				for (int i = 0; i < LoadStore.size(); i++) {
 					if (LoadStore.at(i) == currentInst) {
