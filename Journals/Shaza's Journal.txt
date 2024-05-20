@@ -1,0 +1,2 @@
+18-19/5, 7 pm to 5 am
+Wrote the Intial Algorithm for the program along with all of its classes and some test cases

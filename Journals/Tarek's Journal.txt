@@ -1,0 +1,4 @@
+19-20/5, 7 pm to 7 am
+Changed the used algorithms into ones that are easier to debug
+
+Debugged several bugs in the code and ran several test cases through it
